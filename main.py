@@ -1,6 +1,6 @@
 import psycopg2
 from PyQt5.QtWidgets import QApplication, QWidget, QTabWidget, QAbstractScrollArea, QVBoxLayout, QHBoxLayout, \
-    QTableWidget, QGroupBox, QTableWidgetItem, QPushButton, QMessageBox, QDialog
+    QTableWidget, QGroupBox, QTableWidgetItem, QPushButton, QMessageBox
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -17,6 +17,7 @@ class MainWindow(QWidget):
 
         self._create_timetable_tab()
         self._create_teachers_tab()
+        self._create_subjects_tab()
 
 
     def _connect_to_db(self):
@@ -222,12 +223,107 @@ class MainWindow(QWidget):
 
 
 
+# Создание таблицы с предметами.
+    def _create_subjects_tab(self):
+
+        self.subjects_tab = QWidget()
+        self.tabs.addTab(self.subjects_tab, "Subjects")
+
+        self.subjects_gbox = QGroupBox("Subjects")
+
+        self.svbox6 = QVBoxLayout()
+        self.shbox7 = QHBoxLayout()
+        self.shbox8 = QHBoxLayout()
+
+        self.svbox6.addLayout(self.shbox7)
+        self.svbox6.addLayout(self.shbox8)
+
+        self.shbox7.addWidget(self.subjects_gbox)
+
+        self._create_subjects_table()
+
+        self.update_shedule_button = QPushButton("Update")
+        self.shbox8.addWidget(self.update_shedule_button)
+        self.update_shedule_button.clicked.connect(self._update_shedule)
+
+        self.subjects_tab.setLayout(self.svbox6)
+
+    def _create_subjects_table(self):
+        self.subjects_table = QTableWidget()
+        self.subjects_table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+
+        self.subjects_table.setColumnCount(3)
+        self.subjects_table.setHorizontalHeaderLabels(
+            ["name", "", ""])
+
+        self._update_subjects_table()
+
+        self.mvbox2 = QVBoxLayout()
+        self.mvbox2.addWidget(self.subjects_table)
+        self.subjects_gbox.setLayout(self.mvbox2)
+
+    def _update_subjects_table(self):
+        self.subjects_table.setRowCount(0)
+        self.cursor.execute("SELECT * FROM subject")
+        records1 = list(self.cursor.fetchall())
+
+        self.subjects_table.setRowCount(len(records1) + 1)
+
+        for i, r in enumerate(records1):
+            r = list(r)
+            joinButton1 = QPushButton("Join")
+            deleteButton1 = QPushButton("Delete")
+
+            self.subjects_table.setItem(i, 0, QTableWidgetItem(str(r[0])))
+
+            self.subjects_table.setCellWidget(i, 1, joinButton1)
+            self.subjects_table.setCellWidget(i, 2, deleteButton1)
+
+            joinButton1.clicked.connect(lambda ch, num=i: self._change_day_from_table2(num))
+
+            deleteButton1.clicked.connect(lambda ch, num=i: self._delete_day_from_table2(num))
+        self.insertbutton1 = QPushButton("Insert")
+        self.subjects_table.setCellWidget(len(records1), 2, self.insertbutton1)
+        self.subjects_table.resizeRowsToContents()
+
+    def _change_day_from_table2(self, rowNum1):
+        row1 = list()
+        for column1 in range(self.subjects_table.columnCount()):
+            try:
+                row1.append(self.subjects_table.item(rowNum1, column1).text())
+            except:
+                row1.append(None)
+            try:
+                self.cursor.execute(
+                    "UPDATE subject Set name = %s",
+                    (row1[0],))
+                self.conn.commit()
+            except:
+                QMessageBox.about(self, "Error", "Something wrong!")
+
+    def _delete_day_from_table2(self, rowNum1):
+        row1 = list()
+        for column1 in range(self.subjects_table.columnCount()):
+            try:
+                row1.append(self.subjects_table.item(rowNum1, column1).text())
+            except:
+                row1.append(None)
+            try:
+                self.cursor.execute("Delete from subject where name=%s",
+                                    (row1[0],))
+                self.conn.commit()
+            except:
+                QMessageBox.about(self, "Error", "Something wrong!")
+
+
+
 
 
 
     def _update_shedule(self):
         self._update_timetable_table()
         self._update_teachers_table()
+        self._update_subjects_table()
 
 
 
