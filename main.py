@@ -77,7 +77,6 @@ class MainWindow(QWidget):
             r = list(r)
             joinButton = QPushButton("Join")
             deleteButton = QPushButton("Delete")
-            insertButton = QPushButton("Insert")
 
             self.timetable_table.setItem(i, 0,QTableWidgetItem(str(r[0])))
             self.timetable_table.setItem(i, 1,QTableWidgetItem(str(r[1])))
@@ -95,11 +94,18 @@ class MainWindow(QWidget):
             joinButton.clicked.connect(lambda ch, num=i: self._change_day_from_table(num))
 
             deleteButton.clicked.connect(lambda ch, num=i: self._delete_day_from_table(num))
-
-            insertButton.clicked.connect(lambda ch, num=i: self._insert_in_timetable(num))
+        insertButton = QPushButton("Insert")
         self.timetable_table.setCellWidget(len(records), 6, insertButton)
-
+        insertButton.clicked.connect(lambda ch: self.insert_timetable())
         self.timetable_table.resizeRowsToContents()
+
+    def insert_timetable(self):
+        # self.cursor.execute("Insert INTO timetable (id, day, subject, room_numb, start_time, week_numb) Values "
+        #                     "('55', '%s','Вычислительная техника (Лекция)','09','09:30:00','%s')")
+        self.cursor.execute("Insert INTO timetable DEFAULT VALUES")
+       
+        self.conn.commit()
+        self._update_timetable_table()
 
 
     def _change_day_from_table(self, rowNum):
@@ -109,11 +115,12 @@ class MainWindow(QWidget):
                 row.append(self.timetable_table.item(rowNum, column).text())
             except:
                 row.append(None)
-
-        self.cursor.execute("UPDATE timetable Set day=%s, subject=%s, room_numb=%s, start_time=%s, week_numb=%s where id = %s", (row[1],row[2],row[3],row[4],row[5],row[0],))
-        self.conn.commit()
-            # except:
-            #     QMessageBox.about(self, "Error", "Something wrong!")
+        try:
+            self.cursor.execute("UPDATE timetable Set day=%s, subject=%s, room_numb=%s, start_time=%s, week_numb=%s where id = %s",
+                            (row[1],row[2],row[3],row[4],row[5],row[0],))
+            self.conn.commit()
+        except:
+            QMessageBox.about(self, "Error", "Something wrong!")
 
     def _delete_day_from_table(self, rowNum):
         row = list()
@@ -122,26 +129,14 @@ class MainWindow(QWidget):
                 row.append(self.timetable_table.item(rowNum, column).text())
             except:
                 row.append(None)
-            try:
-                self.cursor.execute("Delete from timetable where id=%s",
-                                    (row[0],))
-                self.conn.commit()
-            except:
-                QMessageBox.about(self, "Error", "Something wrong! Not Delete!")
-
-    def _insert_in_timetable(self, rowNum):
-        row = list()
-        # for column in range(self.timetable_table.columnCount()):
-        #     try:
-        #         row.append(self.timetable_table.item(rowNum, column).text())
-        #     except:
-        #         row.append(None)
         try:
-            self.cursor.execute("Insert Into timetable (id, day, subject, room_numb, start_time, week_numb) VALUES (%s, %s, %s, %s, %s, %s)",
-                                    (row[0],row[1],row[2],row[3],row[4],row[5],))
+            self.cursor.execute("Delete from timetable where id=%s",
+                                    (row[0],))
             self.conn.commit()
         except:
-            QMessageBox.about(self, "Error", "Not insert")
+                QMessageBox.about(self, "Error", "Something wrong! Not Delete!")
+
+        self._update_timetable_table()
 
 
 
@@ -207,9 +202,17 @@ class MainWindow(QWidget):
             joinButton1.clicked.connect(lambda ch, num=i: self._change_day_from_table1(num))
 
             deleteButton1.clicked.connect(lambda ch, num=i: self._delete_day_from_table1(num))
-        self.insertbutton1 = QPushButton("Insert")
-        self.teachers_table.setCellWidget(len(records1), 4, self.insertbutton1)
+        insertButton1 = QPushButton("Insert")
+        self.teachers_table.setCellWidget(len(records1), 4, insertButton1)
+        insertButton1.clicked.connect(lambda ch: self.insert_teacher())
         self.teachers_table.resizeRowsToContents()
+
+    def insert_teacher(self):
+        self.cursor.execute("Insert INTO teacher DEFAULT VALUES")
+
+        self.conn.commit()
+        self._update_teachers_table()
+
 
     def _change_day_from_table1(self, rowNum1):
         row1 = list()
@@ -218,13 +221,13 @@ class MainWindow(QWidget):
                 row1.append(self.teachers_table.item(rowNum1, column1).text())
             except:
                 row1.append(None)
-            try:
-                self.cursor.execute(
+        try:
+            self.cursor.execute(
                     "UPDATE teacher Set full_name =%s, subject=%s where id = %s",
                     (row1[1], row1[2], row1[0],))
-                self.conn.commit()
-            except:
-                QMessageBox.about(self, "Error", "Something wrong!")
+            self.conn.commit()
+        except:
+            QMessageBox.about(self, "Error", "Something wrong!")
 
     def _delete_day_from_table1(self, rowNum1):
         row1 = list()
@@ -233,13 +236,13 @@ class MainWindow(QWidget):
                 row1.append(self.teachers_table.item(rowNum1, column1).text())
             except:
                 row1.append(None)
-            try:
-                self.cursor.execute("Delete from teacher where id=%s",
+        try:
+            self.cursor.execute("Delete from teacher where id=%s",
                                     (row1[0],))
-                self.conn.commit()
-            except:
+            self.conn.commit()
+        except:
                 QMessageBox.about(self, "Error", "Something wrong!")
-
+        self._update_teachers_table()
 
 
 # Создание таблицы с предметами.
@@ -271,9 +274,9 @@ class MainWindow(QWidget):
         self.subjects_table = QTableWidget()
         self.subjects_table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-        self.subjects_table.setColumnCount(3)
+        self.subjects_table.setColumnCount(4)
         self.subjects_table.setHorizontalHeaderLabels(
-            ["name", "", ""])
+            ["id", "name","", ""])
 
         self._update_subjects_table()
 
@@ -283,7 +286,7 @@ class MainWindow(QWidget):
 
     def _update_subjects_table(self):
         self.subjects_table.setRowCount(0)
-        self.cursor.execute("SELECT * FROM subject")
+        self.cursor.execute("SELECT * FROM subject order by id")
         records1 = list(self.cursor.fetchall())
 
         self.subjects_table.setRowCount(len(records1) + 1)
@@ -294,16 +297,25 @@ class MainWindow(QWidget):
             deleteButton1 = QPushButton("Delete")
 
             self.subjects_table.setItem(i, 0, QTableWidgetItem(str(r[0])))
+            self.subjects_table.setItem(i, 1, QTableWidgetItem(str(r[1])))
 
-            self.subjects_table.setCellWidget(i, 1, joinButton1)
-            self.subjects_table.setCellWidget(i, 2, deleteButton1)
+            self.subjects_table.setCellWidget(i, 2, joinButton1)
+            self.subjects_table.setCellWidget(i, 3, deleteButton1)
 
             joinButton1.clicked.connect(lambda ch, num=i: self._change_day_from_table2(num))
 
             deleteButton1.clicked.connect(lambda ch, num=i: self._delete_day_from_table2(num))
-        self.insertbutton1 = QPushButton("Insert")
-        self.subjects_table.setCellWidget(len(records1), 2, self.insertbutton1)
+        insertButton2 = QPushButton("Insert")
+        self.subjects_table.setCellWidget(len(records1), 3, insertButton2)
+        insertButton2.clicked.connect(lambda ch: self.insert_subjects())
         self.subjects_table.resizeRowsToContents()
+
+
+    def insert_subjects(self):
+        self.cursor.execute("Insert INTO subject DEFAULT VALUES")
+
+        self.conn.commit()
+        self._update_subjects_table()
 
     def _change_day_from_table2(self, rowNum1):
         row1 = list()
@@ -312,13 +324,13 @@ class MainWindow(QWidget):
                 row1.append(self.subjects_table.item(rowNum1, column1).text())
             except:
                 row1.append(None)
-            try:
-                self.cursor.execute(
-                    "UPDATE subject Set name = %s",
-                    (row1[0],))
-                self.conn.commit()
-            except:
-                QMessageBox.about(self, "Error", "Something wrong!")
+        try:
+            self.cursor.execute(
+                    "UPDATE subject Set name = %s where id=%s",
+                    (row1[1],row1[0],))
+            self.conn.commit()
+        except:
+            QMessageBox.about(self, "Error", "Something wrong!")
 
     def _delete_day_from_table2(self, rowNum1):
         row1 = list()
@@ -328,11 +340,12 @@ class MainWindow(QWidget):
             except:
                 row1.append(None)
             try:
-                self.cursor.execute("Delete from subject where name=%s",
+                self.cursor.execute("Delete from subject where id=%s",
                                     (row1[0],))
                 self.conn.commit()
             except:
                 QMessageBox.about(self, "Error", "Something wrong!")
+        self._update_subjects_table()
 
 
 
