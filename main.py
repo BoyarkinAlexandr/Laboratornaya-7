@@ -19,7 +19,6 @@ class MainWindow(QWidget):
         self._create_teachers_tab()
         self._create_subjects_tab()
 
-
     def _connect_to_db(self):
         self.conn = psycopg2.connect(database="bot",
                                      user="alexandrboyarkin",
@@ -69,7 +68,7 @@ class MainWindow(QWidget):
 
     def _update_timetable_table(self):
         self.timetable_table.setRowCount(0)
-        self.cursor.execute("SELECT * FROM timetable")
+        self.cursor.execute("SELECT * FROM timetable order by id")
         records = list(self.cursor.fetchall())
 
         self.timetable_table.setRowCount(len(records) + 1)
@@ -78,6 +77,7 @@ class MainWindow(QWidget):
             r = list(r)
             joinButton = QPushButton("Join")
             deleteButton = QPushButton("Delete")
+            insertButton = QPushButton("Insert")
 
             self.timetable_table.setItem(i, 0,QTableWidgetItem(str(r[0])))
             self.timetable_table.setItem(i, 1,QTableWidgetItem(str(r[1])))
@@ -88,13 +88,17 @@ class MainWindow(QWidget):
 
             self.timetable_table.setCellWidget(i, 6, joinButton)
             self.timetable_table.setCellWidget(i, 7, deleteButton)
+            # self.timetable_table.setCellWidget(len(records), 6, insertButton)
+
 
 
             joinButton.clicked.connect(lambda ch, num=i: self._change_day_from_table(num))
 
             deleteButton.clicked.connect(lambda ch, num=i: self._delete_day_from_table(num))
-        self.insertbutton = QPushButton("Insert")
-        self.timetable_table.setCellWidget(len(records),6, self.insertbutton)
+
+            insertButton.clicked.connect(lambda ch, num=i: self._insert_in_timetable(num))
+        self.timetable_table.setCellWidget(len(records), 6, insertButton)
+
         self.timetable_table.resizeRowsToContents()
 
 
@@ -105,11 +109,11 @@ class MainWindow(QWidget):
                 row.append(self.timetable_table.item(rowNum, column).text())
             except:
                 row.append(None)
-            try:
-                self.cursor.execute("UPDATE timetable Set day=%s, subject=%s, room_numb=%s, start_time=%s, week_numb=%s where id = %s", (row[1],row[2],row[3],row[4],row[5],row[0],))
-                self.conn.commit()
-            except:
-                QMessageBox.about(self, "Error", "Something wrong!")
+
+        self.cursor.execute("UPDATE timetable Set day=%s, subject=%s, room_numb=%s, start_time=%s, week_numb=%s where id = %s", (row[1],row[2],row[3],row[4],row[5],row[0],))
+        self.conn.commit()
+            # except:
+            #     QMessageBox.about(self, "Error", "Something wrong!")
 
     def _delete_day_from_table(self, rowNum):
         row = list()
@@ -123,7 +127,22 @@ class MainWindow(QWidget):
                                     (row[0],))
                 self.conn.commit()
             except:
-                QMessageBox.about(self, "Error", "Something wrong!")
+                QMessageBox.about(self, "Error", "Something wrong! Not Delete!")
+
+    def _insert_in_timetable(self, rowNum):
+        row = list()
+        # for column in range(self.timetable_table.columnCount()):
+        #     try:
+        #         row.append(self.timetable_table.item(rowNum, column).text())
+        #     except:
+        #         row.append(None)
+        try:
+            self.cursor.execute("Insert Into timetable (id, day, subject, room_numb, start_time, week_numb) VALUES (%s, %s, %s, %s, %s, %s)",
+                                    (row[0],row[1],row[2],row[3],row[4],row[5],))
+            self.conn.commit()
+        except:
+            QMessageBox.about(self, "Error", "Not insert")
+
 
 
 
@@ -168,7 +187,7 @@ class MainWindow(QWidget):
 
     def _update_teachers_table(self):
         self.teachers_table.setRowCount(0)
-        self.cursor.execute("SELECT * FROM teacher")
+        self.cursor.execute("SELECT * FROM teacher order by id")
         records1 = list(self.cursor.fetchall())
 
         self.teachers_table.setRowCount(len(records1) + 1)
